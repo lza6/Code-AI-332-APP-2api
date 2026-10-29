@@ -1,0 +1,34 @@
+[
+  {
+    "mode": "real",
+    "concurrency": 2,
+    "requests": 6,
+    "ok": 6,
+    "fail": 0,
+    "rps": 0.27,
+    "p50_s": 6.496,
+    "p90_s": 7.841,
+    "p95_s": 7.841,
+    "p99_s": 7.841,
+    "mean_s": 6.851,
+    "max_s": 7.841,
+    "avg_chars": 73.7,
+    "errors": []
+  },
+  {
+    "mode": "real",
+    "concurrency": 4,
+    "requests": 6,
+    "ok": 6,
+    "fail": 0,
+    "rps": 0.32,
+    "p50_s": 9.981,
+    "p90_s": 18.766,
+    "p95_s": 18.766,
+    "p99_s": 18.766,
+    "mean_s": 10.675,
+    "max_s": 18.766,
+    "avg_chars": 75.3,
+    "errors": []
+  }
+]

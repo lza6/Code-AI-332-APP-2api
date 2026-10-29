@@ -1,0 +1,50 @@
+[
+  {
+    "mode": "mock",
+    "concurrency": 1,
+    "requests": 60,
+    "ok": 60,
+    "fail": 0,
+    "rps": 3.79,
+    "p50_s": 0.262,
+    "p90_s": 0.265,
+    "p95_s": 0.293,
+    "p99_s": 0.306,
+    "mean_s": 0.264,
+    "max_s": 0.306,
+    "avg_chars": 35.0,
+    "errors": []
+  },
+  {
+    "mode": "mock",
+    "concurrency": 10,
+    "requests": 60,
+    "ok": 60,
+    "fail": 0,
+    "rps": 37.09,
+    "p50_s": 0.268,
+    "p90_s": 0.276,
+    "p95_s": 0.277,
+    "p99_s": 0.278,
+    "mean_s": 0.268,
+    "max_s": 0.278,
+    "avg_chars": 35.0,
+    "errors": []
+  },
+  {
+    "mode": "mock",
+    "concurrency": 25,
+    "requests": 60,
+    "ok": 60,
+    "fail": 0,
+    "rps": 73.34,
+    "p50_s": 0.273,
+    "p90_s": 0.293,
+    "p95_s": 0.304,
+    "p99_s": 0.305,
+    "mean_s": 0.275,
+    "max_s": 0.305,
+    "avg_chars": 35.0,
+    "errors": []
+  }
+]

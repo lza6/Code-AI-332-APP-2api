@@ -1,0 +1,18 @@
+[
+  {
+    "mode": "real",
+    "concurrency": 2,
+    "requests": 4,
+    "ok": 4,
+    "fail": 0,
+    "rps": 0.3,
+    "p50_s": 6.422,
+    "p90_s": 7.857,
+    "p95_s": 7.857,
+    "p99_s": 7.857,
+    "mean_s": 6.454,
+    "max_s": 7.857,
+    "avg_chars": 70.0,
+    "errors": []
+  }
+]

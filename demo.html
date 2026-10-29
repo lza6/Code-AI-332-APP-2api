@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Code AI 2API · Demo</title>
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#111823; --panel2:#0e141c; --line:#1e2a38;
+    --fg:#dbe7f3; --dim:#7d90a5; --acc:#39d3a0; --acc2:#4aa8ff; --warn:#ffb84d; --err:#ff6b6b;
+    --mono:ui-monospace,SFMono-Regular,"Cascadia Code",Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.6 -apple-system,"Segoe UI",system-ui,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#0f1620,#0b0f14);position:sticky;top:0;z-index:5}
+  header h1{margin:0;font-size:15px;font-weight:600;letter-spacing:.3px}
+  header .tag{font:11px/1 var(--mono);color:var(--dim);border:1px solid var(--line);padding:4px 7px;border-radius:6px}
+  header .grow{flex:1}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--dim);display:inline-block;margin-right:6px}
+  .dot.ok{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+  .dot.bad{background:var(--err)}
+  main{display:grid;grid-template-columns:1fr 320px;gap:16px;padding:16px;max-width:1400px;margin:0 auto}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+  .card > .hd{padding:10px 14px;border-bottom:1px solid var(--line);font-size:12px;color:var(--dim);
+    text-transform:uppercase;letter-spacing:.8px;display:flex;gap:8px;align-items:center}
+  #log{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;min-height:380px;max-height:64vh}
+  .msg{display:flex;gap:10px}
+  .msg .who{flex:0 0 64px;font:11px/1.5 var(--mono);color:var(--dim);text-align:right;padding-top:3px}
+  .msg .body{flex:1;min-width:0;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;white-space:pre-wrap;word-break:break-word}
+  .msg.user .body{background:#12202e;border-color:#1d3348}
+  .msg.sys .body{background:transparent;border-style:dashed;color:var(--dim);font:12px/1.6 var(--mono)}
+  .msg .meta{margin-top:6px;font:11px/1.4 var(--mono);color:var(--dim)}
+  .composer{border-top:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px}
+  textarea{width:100%;min-height:76px;resize:vertical;background:var(--panel2);color:var(--fg);
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:13px/1.6 inherit;outline:none}
+  textarea:focus{border-color:#2b4a6b}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button{background:#16324a;color:#d6ebff;border:1px solid #22496b;border-radius:9px;padding:8px 16px;
+    font:13px/1 inherit;cursor:pointer}
+  button:hover{background:#1b3f5e}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.ghost{background:transparent;border-color:var(--line);color:var(--dim)}
+  label.chk{display:flex;gap:6px;align-items:center;color:var(--dim);font-size:12px;cursor:pointer}
+  aside .kv{display:flex;justify-content:space-between;padding:7px 14px;border-bottom:1px solid #16202c;font-size:12.5px}
+  aside .kv span:first-child{color:var(--dim)}
+  aside .kv b{font-family:var(--mono);font-weight:600}
+  .bar{height:6px;background:#16202c;border-radius:4px;overflow:hidden;margin:8px 14px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));width:0%}
+  #accts{max-height:34vh;overflow:auto;font:11px/1.5 var(--mono)}
+  #accts table{width:100%;border-collapse:collapse}
+  #accts td{padding:3px 8px;border-bottom:1px solid #16202c;white-space:nowrap}
+  #accts td.dead{color:var(--err)}
+  code{font-family:var(--mono);background:#16202c;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<header>
+  <span class="dot" id="hdot"></span>
+  <h1>Code AI 2API</h1>
+  <span class="tag" id="modelTag">codeai/gpt-4</span>
+  <span class="grow"></span>
+  <span class="tag" id="poolTag">pool –</span>
+</header>
+
+<main>
+  <section class="card">
+    <div class="hd">对话 <span style="margin-left:auto;color:#5d7a94" id="lat"></span></div>
+    <div id="log"></div>
+    <div class="composer">
+      <textarea id="input" placeholder="问点什么…（Ctrl/⌘ + Enter 发送）">用 Python 写一个把 CSV 转成 JSON 的函数，要求流式读写、带类型推断。</textarea>
+      <div class="row">
+        <button id="send">发送</button>
+        <button class="ghost" id="clear">清空</button>
+        <label class="chk"><input type="checkbox" id="stream" checked> stream</label>
+        <label class="chk"><input type="checkbox" id="multi" checked> 携带多轮</label>
+        <span class="grow" style="flex:1"></span>
+        <span id="latency" style="color:var(--dim);font:12px var(--mono)"></span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="card">
+    <div class="hd">账号池</div>
+    <div class="kv"><span>存活账号</span><b id="k-pool">–</b></div>
+    <div class="kv"><span>忙碌中</span><b id="k-busy">–</b></div>
+    <div class="kv"><span>剩余总容量(次)</span><b id="k-cap">–</b></div>
+    <div class="bar"><i id="capbar"></i></div>
+    <div class="kv"><span>已铸造 / 失败</span><b id="k-mint">–</b></div>
+    <div class="kv"><span>每号免费次数</span><b id="k-free">–</b></div>
+    <div class="hd" style="border-top:1px solid var(--line)">最近账号</div>
+    <div id="accts"></div>
+  </aside>
+</main>
+
+<script>
+const qs = s => document.querySelector(s);
+const log = qs('#log');
+let history = [];
+
+function addMsg(who, text, meta) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + who;
+  const label = who === 'sys' ? '' : (who === 'user' ? 'YOU' : 'AI');
+  el.innerHTML = `<div class="who">${label}</div><div class="body"><span class="txt"></span></div>`;
+  el.querySelector('.txt').textContent = text;
+  if (meta) {
+    const m = document.createElement('div');
+    m.className = 'meta';
+    m.textContent = meta;
+    el.querySelector('.body').appendChild(m);
+  }
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+  return el.querySelector('.body');
+}
+
+async function refreshPool() {
+  try {
+    const r = await fetch('/health');
+    const j = await r.json();
+    const p = j.pool;
+    qs('#hdot').className = 'dot ' + (j.status === 'ok' ? 'ok' : 'bad');
+    qs('#modelTag').textContent = j.model;
+    qs('#poolTag').textContent = `pool ${p.pool_size} · cap ${p.total_capacity}`;
+    qs('#k-pool').textContent = p.pool_size;
+    qs('#k-busy').textContent = p.busy;
+    qs('#k-cap').textContent = p.total_capacity;
+    qs('#k-mint').textContent = `${p.minted_total} / ${p.mint_failed_total}`;
+    qs('#k-free').textContent = p.free_chats_per_uid;
+    const total = p.total_capacity + p.consumed_capacity;
+    qs('#capbar').style.width = total ? (100 * p.total_capacity / total) + '%' : '0%';
+  } catch (e) {
+    qs('#hdot').className = 'dot bad';
+  }
+  try {
+    const r = await fetch('/metrics');
+    const j = await r.json();
+    const rows = j.accounts.slice(0, 24).map(a =>
+      `<tr class="${a.dead ? 'dead' : ''}"><td>${a.uid}</td><td>${a.remaining_chats}</td><td>${a.served}</td><td>${a.dead ? a.dead_reason : (a.age_s + 's')}</td></tr>`
+    ).join('');
+    qs('#accts').innerHTML = `<table><tbody>${rows}</tbody></table>`;
+  } catch (e) {}
+}
+setInterval(refreshPool, 3000);
+refreshPool();
+
+async function send() {
+  const btn = qs('#send');
+  const text = qs('#input').value.trim();
+  if (!text || btn.disabled) return;
+  addMsg('user', text);
+  history.push({ role: 'user', content: text });
+  qs('#input').value = '';
+  btn.disabled = true;
+  qs('#latency').textContent = '…';
+
+  const body = {
+    model: qs('#modelTag').textContent,
+    messages: qs('#multi').checked ? history : [{ role: 'user', content: text }],
+    stream: qs('#stream').checked,
+  };
+
+  const t0 = performance.now();
+  try {
+    const r = await fetch('/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      addMsg('sys', `HTTP ${r.status} · ${j?.error?.message || 'error'}`);
+      btn.disabled = false;
+      return;
+    }
+    if (body.stream) {
+      const box = addMsg('ai', '');
+      const reader = r.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '', acc = '';
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (payload === '[DONE]') continue;
+          try {
+            const j = JSON.parse(payload);
+            const d = j.choices?.[0]?.delta?.content;
+            if (d) { acc += d; box.querySelector('.txt').textContent = acc; log.scrollTop = log.scrollHeight; }
+          } catch (e) {}
+        }
+      }
+      history.push({ role: 'assistant', content: acc });
+    } else {
+      const j = await r.json();
+      const txt = j.choices[0].message.content;
+      const c = j.codeai || {};
+      addMsg('ai', txt, `uid ${String(c.uid).slice(0, 8)} · 剩余 ${c.remaining_chats} 次 · ${((performance.now() - t0) / 1000).toFixed(1)}s`);
+      history.push({ role: 'assistant', content: txt });
+    }
+    qs('#latency').textContent = ((performance.now() - t0) / 1000).toFixed(2) + 's';
+  } catch (e) {
+    addMsg('sys', 'fetch error: ' + e);
+  } finally {
+    btn.disabled = false;
+    qs('#input').focus();
+    refreshPool();
+  }
+}
+
+qs('#send').onclick = send;
+qs('#clear').onclick = () => { history = []; log.innerHTML = ''; };
+qs('#input').addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') send();
+});
+addMsg('sys', '上游为 Firebase callable function「getOpenAIResponse」。每个匿名 uid 5 次免费聊天且严格串行，网关自动换号。输出上限 ≈500 token（上游硬限制）。');
+</script>
+</body>
+</html>
